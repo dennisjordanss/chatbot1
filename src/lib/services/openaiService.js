@@ -35,7 +35,7 @@ async function getOrCreateThread() {
   }
 }
 
-export async function openaiTest(question) {
+export async function askGptQuestion(question) {
   console.log("Received question:", question);
   await initializeAssistant();
   await getOrCreateThread();

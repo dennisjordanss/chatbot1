@@ -1,5 +1,5 @@
 <script>
-    import { openaiTest } from '$lib/services/openaiService.js';
+    import { askGptQuestion } from '$lib/services/openaiService.js';
     let inputQuestion = '';
     let messages = [];
     let isLoading = false;
@@ -10,7 +10,7 @@
       messages = [...messages, { role: 'user', content: inputQuestion }];  // Ensure reactivity by creating a new array
   
       try {
-        const response = await openaiTest(inputQuestion);
+        const response = await askGptQuestion(inputQuestion);
         messages = [...messages, { role: 'bot', content: response }];  // Ensure reactivity by creating a new array
         console.log("response:", response);
       } catch (error) {
