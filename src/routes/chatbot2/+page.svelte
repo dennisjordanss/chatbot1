@@ -6,7 +6,7 @@
 <div class="container mx-auto px-4 h-full">
     <div class="chat-container">
         <div class="chat-header">
-            My Chatbot
+            Denbot 9000
         </div>
         <div class="chat-body">
             <Chatbot2 />
