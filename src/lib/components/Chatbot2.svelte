@@ -11,8 +11,8 @@
   
       try {
         const response = await openaiTest(inputQuestion);
-        messages = [...messages, { role: 'bot', content: response.choices[0].message.content }];  // Ensure reactivity by creating a new array
-        console.log("response:", response.choices[0].message.content);
+        messages = [...messages, { role: 'bot', content: response }];  // Ensure reactivity by creating a new array
+        console.log("response:", response);
       } catch (error) {
         messages = [...messages, { role: 'bot', content: 'Failed to fetch response.' }];  // Ensure reactivity by creating a new array
         console.error('OpenAI API error:', error);
