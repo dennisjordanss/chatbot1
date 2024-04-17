@@ -21,6 +21,9 @@
 			</li>
 			<li aria-current={$page.url.pathname === '/chatbot1' ? 'page' : undefined}>
 				<a href="/chatbot1">Chatbot1</a>
+			</li>			
+			<li aria-current={$page.url.pathname === '/chatbot2' ? 'page' : undefined}>
+				<a href="/chatbot2">Chatbot2</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
