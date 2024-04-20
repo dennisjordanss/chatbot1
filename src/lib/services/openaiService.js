@@ -1,7 +1,7 @@
 // src/lib/services/openaiService.js
 import OpenAI from "openai";
+import cookie from "cookie";
 import { env } from "$env/dynamic/private";
-import fs from "fs";
 
 const openai = new OpenAI({
   apiKey: env.VITE_OPENAI_API_KEY,
@@ -15,9 +15,9 @@ let vectorStoreId;
 async function createAssistant() {
   console.log("Creating new assistant...");
   const assistant = await openai.beta.assistants.create({
-    name: "Dennis AI",
+    name: "Denbot 9000",
     instructions:
-      "You are Dennis AI, a helpful and knowledgeable assistant. You are smart and friendly.",
+      "You are Denbot 9000, a helpful and knowledgeable assistant. You are smart and friendly.",
     tools: [{ type: "file_search" }],
     model: "gpt-4-turbo-preview",
   });
@@ -95,7 +95,7 @@ async function createVectorStore(name) {
 }
 
 // Ensure a vector store exists, either by finding an existing one or creating a new one
-export async function ensureVectorStore(name) {
+async function ensureVectorStore(name) {
   if (!vectorStoreId) {
     const existingStoreId = await findVectorStoreByName(name);
     vectorStoreId = existingStoreId || (await createVectorStore(name));
@@ -112,38 +112,98 @@ async function retrieveMessages(threadId) {
   return messages.data;
 }
 
+// Delete all files from OpenAI
+export async function deleteAllFiles() {
+  try {
+    // Retrieve the list of files
+    const response = await openai.files.list();
+    const files = response.data;
+
+    // Delete each file
+    for (const file of files) {
+      await openai.files.del(file.id);
+      console.log(`Deleted file: ${file.id}`);
+    }
+
+    console.log("All files deleted successfully.");
+  } catch (error) {
+    console.error("Failed to delete files:", error);
+    throw error;
+  }
+}
+
+// Delete all assistants
+export async function deleteAllAssistants() {
+  try {
+    // Retrieve the list of assistants
+    const response = await openai.beta.assistants.list();
+    const assistants = response.data;
+
+    // Delete each assistant
+    for (const assistant of assistants) {
+      await openai.beta.assistants.del(assistant.id);
+      console.log(`Deleted assistant: ${assistant.id}`);
+    }
+
+    console.log("All assistants deleted successfully.");
+  } catch (error) {
+    console.error("Failed to delete assistants:", error);
+    throw error;
+  }
+}
+
 // Ask a question to the GPT assistant
-// Ask a question to the GPT assistant
-export async function askGptQuestion(question) {
+export async function askGptQuestion(question, cookies) {
   console.log("Received question:", question);
+  console.log("Cookies:", cookies);
 
   // Ensure vector store exists
   const vectorStoreId = await ensureVectorStore("my_vector_store");
 
-  if (!assistantId) {
-    assistantId = await createAssistant();
-  } else {
-    // Update the existing assistant with the vector store access
-    await openai.beta.assistants.update(assistantId, {
-      tool_resources: {
-        file_search: {
-          vector_store_ids: [vectorStoreId],
-        },
-      },
-    });
-    console.log("Assistant updated with vector store access");
+  // Parse the cookies
+  const parsedCookies = cookie.parse(cookies || "");
+
+  // Check if the assistantId exists in the cookie
+  if (parsedCookies.assistantId) {
+    assistantId = parsedCookies.assistantId;
+    console.log("Assistant ID found in cookie:", assistantId);
   }
 
-  if (!threadId) threadId = await createThread();
+  if (!assistantId) {
+    // If assistantId is not set, create a new assistant
+    assistantId = await createAssistant();
+    console.log("New assistant created with ID:", assistantId);
+  } else {
+    try {
+      // Check if the assistant exists
+      await openai.beta.assistants.retrieve(assistantId);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        // Assistant not found, create a new one
+        assistantId = await createAssistant();
+        console.log("New assistant created with ID:", assistantId);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!threadId) {
+    threadId = await createThread();
+    console.log("New thread created with ID:", threadId);
+  }
 
   await addMessageToThread(threadId, question);
+  console.log("Message added to thread");
+
   const run = await runAssistant(threadId, assistantId);
+  console.log("Run completed with status:", run.status);
 
   if (run.status === "completed") {
     const messages = await retrieveMessages(threadId);
     const response_text = messages[0].content[0].text.value;
     console.log("GPT response:", response_text);
-    return response_text;
+    return { response: response_text, assistantId: assistantId };
   } else {
     console.log("Run did not complete, status:", run.status);
     return { error: "Run did not complete.", status: run.status };
@@ -170,6 +230,15 @@ export async function uploadFile(file) {
         file_id: uploadedFile.id,
       });
       console.log("File added to vector store");
+      // Update the existing assistant with the vector store access
+      await openai.beta.assistants.update(assistantId, {
+        tool_resources: {
+          file_search: {
+            vector_store_ids: [vectorStoreId],
+          },
+        },
+      });
+      console.log("Assistant updated with vector store access");
     } else {
       console.warn(
         "Vector store not available. File not added to vector store."

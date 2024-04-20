@@ -26,6 +26,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"cookie": "^0.6.0",
 		"daisyui": "^4.10.2",
 		"openai": "^4.36.0"
 	}

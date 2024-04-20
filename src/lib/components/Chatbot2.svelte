@@ -1,18 +1,20 @@
 <script>
   import FileUpload from "$lib/components/FileUploadButton.svelte";
+  import DeleteFilesButton from "$lib/components/DeleteFilesButton.svelte";
+  import DeleteAssistantsButton from "$lib/components/DeleteAssistantsButton.svelte";
 
   let inputQuestion = "";
   let messages = [];
   let isLoading = false;
   let error = "";
 
-  function decodeHtml(html) {
-    return html.replace(/\\u[\dA-F]{4}|\\r/gi, function (match) {
-      if (match === "\\r") {
-        return "";
-      }
-      return String.fromCharCode(parseInt(match.replace(/\\u/g, ""), 16));
-    });
+  function handleDeleteFiles() {
+    // Handle the deleteFiles event
+    console.log("All files deleted");
+  }
+  function handleDeleteAssistants() {
+    // Handle the deleteAssistants event
+    console.log("All assistants deleted");
   }
 
   async function handleQuestion(event) {
@@ -46,6 +48,12 @@
         },
       ];
       inputQuestion = ""; // Clear input after sending
+
+      // // Set the cookie
+      // const cookieHeader = response.headers.get("Set-Cookie");
+      // if (cookieHeader) {
+      //   document.cookie = cookieHeader;
+      // }
     } catch (err) {
       error = `Failed to send question: ${err.message}`;
       console.error("Error submitting question:", err);
@@ -77,6 +85,8 @@
   {#if error}
     <p class="error">{error}</p>
   {/if}
+  <DeleteFilesButton on:deleteFiles={handleDeleteFiles} />
+  <DeleteAssistantsButton on:deleteAssistants={handleDeleteAssistants} />
 </form>
 
 <style>

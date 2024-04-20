@@ -1,20 +1,18 @@
 // src/routes/chatbot2/+page.server.js
 
-import { askGptQuestion, uploadFile } from "$lib/services/openaiService.js";
+import {
+  askGptQuestion,
+  uploadFile,
+  deleteAllFiles,
+  deleteAllAssistants,
+} from "$lib/services/openaiService.js";
 import { error } from "@sveltejs/kit";
-
-async function processFileUpload(file) {
-  // Dummy function for uploading file logic
-  console.log(`Processing file upload for: ${file.name}`);
-  // Implement file processing logic here, e.g., saving to disk or cloud storage
-  return "mock-file-id"; // Return a mock file ID or real one from your storage solution
-}
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-  async askGptQuestion({ request }) {
+  async askGptQuestion({ request, cookies }) {
     const formData = await request.formData();
-    const text = formData.get("text"); // 'text' is the key of the text data in the form
+    const text = formData.get("text");
 
     if (!text) {
       console.error("No text provided for GPT question.");
@@ -22,15 +20,30 @@ export const actions = {
     }
 
     try {
-      const summary = await askGptQuestion(text);
-      console.log("🚀 Received summary from GPT:", summary);
-      return { success: true, summary };
+      const { response, assistantId } = await askGptQuestion(
+        text,
+        cookies.get("assistantId")
+      );
+      console.log("Received response from GPT:", response);
+      console.log("Assistant ID:", assistantId);
+
+      // Set the assistantId cookie
+      cookies.set("assistantId", assistantId, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        httpOnly: true,
+        sameSite: "strict",
+      });
+
+      return {
+        status: 200,
+        body: JSON.stringify({ response, assistantId }),
+      };
     } catch (err) {
       console.error("Error in askGptQuestion:", err);
       throw error(500, `Error processing question: ${err.message}`);
     }
   },
-
   async uploadFileToAssistant({ request }) {
     console.log("Processing file upload request...");
 
@@ -55,6 +68,35 @@ export const actions = {
     } catch (err) {
       console.error("Failed to upload file:", err);
       throw error(500, `Failed to upload file: ${err.message}`);
+    }
+  },
+  async deleteFiles({ request }) {
+    await request.formData(); // Parse the form data
+    try {
+      await deleteAllFiles();
+      return {
+        status: 200,
+        body: JSON.stringify({ message: "All files deleted successfully." }),
+      };
+    } catch (err) {
+      console.error("Error deleting files:", err);
+      throw error(500, `Error deleting files: ${err.message}`);
+    }
+  },
+  async deleteAssistants({ request }) {
+    await request.formData(); // Parse the form data
+
+    try {
+      await deleteAllAssistants();
+      return {
+        status: 200,
+        body: JSON.stringify({
+          message: "All assistants deleted successfully.",
+        }),
+      };
+    } catch (err) {
+      console.error("Error deleting assistants:", err);
+      throw error(500, `Error deleting assistants: ${err.message}`);
     }
   },
 };
