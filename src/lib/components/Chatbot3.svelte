@@ -1,9 +1,9 @@
-<!-- src/lib/components.Chatbot3 -->
+<!-- src/lib/components/Chatbot3.svelte -->
 <script>
   import { writable } from "svelte/store";
+  import ChatWindow from "./ChatWindow.svelte";
 
   export let form;
-
   const currentForm = writable(form);
   $: {
     console.log("🚀 ~ form has changed to: ", $currentForm);
@@ -11,23 +11,45 @@
 
   let isLoading = false;
   let error = "";
+  let currentQuestion;
+  let currentResponse;
+  let messages = [];
+
+  $: if (form?.response) {
+    currentResponse = form.response;
+    messages = [...messages, { role: "bot", content: currentResponse }];
+  }
+
+  function handleSubmit() {
+    messages = [...messages, { role: "user", content: currentQuestion }];
+  }
 </script>
 
-<form method="post" action="?/askGptQuestion" class="chat-container min-h-700">
-  <p>response is: {form?.response || ""}</p>
-
+<form
+  method="post"
+  action="?/askGptQuestion"
+  class="chat-container min-h-700"
+  on:submit={handleSubmit}
+>
+  <ChatWindow {messages} />
   <input
     type="text"
     name="text"
+    bind:value={currentQuestion}
     class="chat-input input input-bordered"
     placeholder="Ask me anything..."
     disabled={isLoading}
   />
-  <button type="submit" class="btn btn-primary">
-    {#if error}
-      <p class="error">{error}</p>
+  <button type="submit" class="btn btn-primary" disabled={isLoading}>
+    {#if isLoading}
+      Loading...
+    {:else}
+      Send
     {/if}
   </button>
+  {#if error}
+    <p class="error">{error}</p>
+  {/if}
 </form>
 
 <style>
