@@ -13,19 +13,20 @@ export const actions = {
   async askGptQuestion({ request, cookies }) {
     const formData = await request.formData();
     const text = formData.get("text");
-
     if (!text) {
       console.error("No text provided for GPT question.");
       throw error(400, "Text is required");
     }
-
     try {
-      const { response, assistantId } = await askGptQuestion(
+      const { response, assistantId, threadId } = await askGptQuestion(
         text,
-        cookies.get("assistantId")
+        cookies.get("assistantId"),
+        cookies.get("threadId"),
+        cookies
       );
       console.log("Received response from GPT:", response);
       console.log("Assistant ID:", assistantId);
+      console.log("Thread ID:", threadId);
 
       // Set the assistantId cookie
       cookies.set("assistantId", assistantId, {
@@ -37,7 +38,7 @@ export const actions = {
 
       return {
         status: 200,
-        body: JSON.stringify({ response, assistantId }),
+        body: JSON.stringify({ response, assistantId, threadId }),
       };
     } catch (err) {
       console.error("Error in askGptQuestion:", err);

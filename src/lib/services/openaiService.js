@@ -195,17 +195,21 @@ export async function uploadFile(file) {
 }
 
 // Ask a question to the GPT assistant
-export async function askGptQuestion(question, assistantid) {
+export async function askGptQuestion(question, assistantid, threadid, cookies) {
   console.log("Received question:", question);
   console.log("assistantid:", assistantid);
+  console.log("threadid:", threadid);
 
   // Ensure vector store exists
   const vectorStoreId = await ensureVectorStore("my_vector_store");
 
+  let assistantId;
+  let threadId;
+
   // Check if the assistantId exists in the cookie
   console.log("Checking if assistant exists");
   if (assistantid) {
-    assistantId = assistantid; // fix this its confusing
+    assistantId = assistantid;
     console.log("Assistant ID found in cookie:", assistantId);
 
     try {
@@ -228,7 +232,28 @@ export async function askGptQuestion(question, assistantid) {
     console.log("New assistant created with ID:", assistantId);
   }
 
-  if (!threadId) {
+  // Check if the threadid exists in the cookie
+  console.log("Checking if thread exists");
+  if (threadid) {
+    threadId = threadid;
+    console.log("Thread ID found in cookie:", threadId);
+
+    try {
+      // Check if the thread exists
+      await openai.beta.threads.retrieve(threadId);
+      console.log("Existing thread will be used:", threadId);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log("Thread not found. Creating a new thread.");
+        threadId = await createThread();
+        console.log("New thread created with ID:", threadId);
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    console.log("threadid not found in cookie");
+    // If threadid is not set, create a new thread
     threadId = await createThread();
     console.log("New thread created with ID:", threadId);
   }
@@ -243,7 +268,20 @@ export async function askGptQuestion(question, assistantid) {
     const messages = await retrieveMessages(threadId);
     const response_text = messages[0].content[0].text.value;
     console.log("GPT response:", response_text);
-    return { response: response_text, assistantId: assistantId };
+
+    // Set the threadId cookie
+    cookies.set("threadId", threadId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      httpOnly: true,
+      sameSite: "strict",
+    });
+
+    return {
+      response: response_text,
+      assistantId: assistantId,
+      threadId: threadId,
+    };
   } else {
     console.log("Run did not complete, status:", run.status);
     return { error: "Run did not complete.", status: run.status };
