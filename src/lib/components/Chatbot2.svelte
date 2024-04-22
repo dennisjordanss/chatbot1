@@ -1,7 +1,9 @@
+<!-- src/lib/components.Chatbot2 -->
 <script>
   import FileUpload from "$lib/components/FileUploadButton.svelte";
   import DeleteFilesButton from "$lib/components/DeleteFilesButton.svelte";
   import DeleteAssistantsButton from "$lib/components/DeleteAssistantsButton.svelte";
+  import NewThreadButton from "$lib/components/NewThreadButton.svelte";
 
   let inputQuestion = "";
   let messages = [];
@@ -15,6 +17,11 @@
   function handleDeleteAssistants() {
     // Handle the deleteAssistants event
     console.log("All assistants deleted");
+  }
+  function handleNewThread() {
+    // Handle the newThread event
+    console.log("New thread created");
+    messages = []; // Clear the messages array when starting a new thread
   }
 
   async function handleQuestion(event) {
@@ -87,6 +94,7 @@
   {/if}
   <DeleteFilesButton on:deleteFiles={handleDeleteFiles} />
   <DeleteAssistantsButton on:deleteAssistants={handleDeleteAssistants} />
+  <NewThreadButton on:newThread={handleNewThread} />
 </form>
 
 <style>

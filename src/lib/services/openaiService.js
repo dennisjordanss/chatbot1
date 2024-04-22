@@ -25,14 +25,6 @@ async function createAssistant() {
   return assistant.id;
 }
 
-// Create a new thread
-async function createThread() {
-  console.log("Creating new thread...");
-  const thread = await openai.beta.threads.create();
-  console.log("Thread created with ID:", thread.id);
-  return thread.id;
-}
-
 // Add a message to a thread
 async function addMessageToThread(threadId, content) {
   console.log(`Adding message to thread: ${threadId}`);
@@ -192,6 +184,14 @@ export async function uploadFile(file) {
     console.error("Failed to upload file:", error);
     throw error;
   }
+}
+
+// Create a new thread
+export async function createThread() {
+  console.log("Creating new thread...");
+  const thread = await openai.beta.threads.create();
+  console.log("Thread created with ID:", thread.id);
+  return thread.id;
 }
 
 // Ask a question to the GPT assistant

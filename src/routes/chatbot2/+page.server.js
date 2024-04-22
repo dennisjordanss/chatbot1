@@ -5,6 +5,7 @@ import {
   uploadFile,
   deleteAllFiles,
   deleteAllAssistants,
+  createThread,
 } from "$lib/services/openaiService.js";
 import { error } from "@sveltejs/kit";
 
@@ -31,7 +32,7 @@ export const actions = {
       // Set the assistantId cookie
       cookies.set("assistantId", assistantId, {
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
+        maxAge: 60 * 60 * 24 * 7 * 52, // 1 year
         httpOnly: true,
         sameSite: "strict",
       });
@@ -43,6 +44,29 @@ export const actions = {
     } catch (err) {
       console.error("Error in askGptQuestion:", err);
       throw error(500, `Error processing question: ${err.message}`);
+    }
+  },
+  async createNewThread({ request, cookies }) {
+    await request.formData(); // Parse the form data
+    try {
+      const threadId = await createThread();
+      console.log("New thread created with ID:", threadId);
+
+      // Set the threadId cookie
+      cookies.set("threadId", threadId, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7 * 52, // 1 year
+        httpOnly: true,
+        sameSite: "strict",
+      });
+
+      return {
+        status: 200,
+        body: JSON.stringify({ threadId }),
+      };
+    } catch (err) {
+      console.error("Error creating new thread:", err);
+      throw error(500, `Error creating new thread: ${err.message}`);
     }
   },
   async uploadFileToAssistant({ request }) {
