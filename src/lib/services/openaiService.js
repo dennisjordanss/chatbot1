@@ -152,64 +152,6 @@ export async function deleteAllAssistants() {
   }
 }
 
-// Ask a question to the GPT assistant
-export async function askGptQuestion(question, cookies) {
-  console.log("Received question:", question);
-  console.log("Cookies:", cookies);
-
-  // Ensure vector store exists
-  const vectorStoreId = await ensureVectorStore("my_vector_store");
-
-  // Parse the cookies
-  const parsedCookies = cookie.parse(cookies || "");
-
-  // Check if the assistantId exists in the cookie
-  if (parsedCookies.assistantId) {
-    assistantId = parsedCookies.assistantId;
-    console.log("Assistant ID found in cookie:", assistantId);
-  }
-
-  if (!assistantId) {
-    // If assistantId is not set, create a new assistant
-    assistantId = await createAssistant();
-    console.log("New assistant created with ID:", assistantId);
-  } else {
-    try {
-      // Check if the assistant exists
-      await openai.beta.assistants.retrieve(assistantId);
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        // Assistant not found, create a new one
-        assistantId = await createAssistant();
-        console.log("New assistant created with ID:", assistantId);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  if (!threadId) {
-    threadId = await createThread();
-    console.log("New thread created with ID:", threadId);
-  }
-
-  await addMessageToThread(threadId, question);
-  console.log("Message added to thread");
-
-  const run = await runAssistant(threadId, assistantId);
-  console.log("Run completed with status:", run.status);
-
-  if (run.status === "completed") {
-    const messages = await retrieveMessages(threadId);
-    const response_text = messages[0].content[0].text.value;
-    console.log("GPT response:", response_text);
-    return { response: response_text, assistantId: assistantId };
-  } else {
-    console.log("Run did not complete, status:", run.status);
-    return { error: "Run did not complete.", status: run.status };
-  }
-}
-
 // Upload a file to OpenAI
 export async function uploadFile(file) {
   try {
@@ -249,5 +191,61 @@ export async function uploadFile(file) {
   } catch (error) {
     console.error("Failed to upload file:", error);
     throw error;
+  }
+}
+
+// Ask a question to the GPT assistant
+export async function askGptQuestion(question, assistantid) {
+  console.log("Received question:", question);
+  console.log("assistantid:", assistantid);
+
+  // Ensure vector store exists
+  const vectorStoreId = await ensureVectorStore("my_vector_store");
+
+  // Check if the assistantId exists in the cookie
+  console.log("Checking if assistant exists");
+  if (assistantid) {
+    assistantId = assistantid; // fix this its confusing
+    console.log("Assistant ID found in cookie:", assistantId);
+
+    try {
+      // Check if the assistant exists
+      await openai.beta.assistants.retrieve(assistantId);
+      console.log("Existing assistant will be used:", assistantId);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log("Assistant not found. Creating a new assistant.");
+        assistantId = await createAssistant();
+        console.log("New assistant created with ID:", assistantId);
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    console.log("assistantId not found in cookie");
+    // If assistantId is not set, create a new assistant
+    assistantId = await createAssistant();
+    console.log("New assistant created with ID:", assistantId);
+  }
+
+  if (!threadId) {
+    threadId = await createThread();
+    console.log("New thread created with ID:", threadId);
+  }
+
+  await addMessageToThread(threadId, question);
+  console.log("Message added to thread");
+
+  const run = await runAssistant(threadId, assistantId);
+  console.log("Run completed with status:", run.status);
+
+  if (run.status === "completed") {
+    const messages = await retrieveMessages(threadId);
+    const response_text = messages[0].content[0].text.value;
+    console.log("GPT response:", response_text);
+    return { response: response_text, assistantId: assistantId };
+  } else {
+    console.log("Run did not complete, status:", run.status);
+    return { error: "Run did not complete.", status: run.status };
   }
 }
