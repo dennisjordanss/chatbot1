@@ -4,6 +4,7 @@
   import DeleteFilesButton from "$lib/components/DeleteFilesButton.svelte";
   import DeleteAssistantsButton from "$lib/components/DeleteAssistantsButton.svelte";
   import NewThreadButton from "$lib/components/NewThreadButton.svelte";
+  import ChatWindow from "$lib/components/ChatWindow.svelte";
 
   let inputQuestion = "";
   let messages = [];
@@ -70,31 +71,32 @@
   }
 </script>
 
-<form on:submit={handleQuestion} class="chat-container">
-  <div class="messages">
-    {#each messages as message}
-      <div class={`message ${message.role}`}>
-        {message.content}
-      </div>
-    {/each}
-  </div>
+<form on:submit={handleQuestion} class="chat-container min-h-700">
+  <ChatWindow {messages} />
+
   <input
-    class="chat-input"
+    class="chat-input input input-bordered"
     bind:value={inputQuestion}
     on:keydown={(e) => e.key === "Enter" && handleQuestion(e)}
     placeholder="Ask me anything..."
     disabled={isLoading}
   />
-  <button type="submit" disabled={!inputQuestion.trim() || isLoading}
-    >Send</button
+  <button
+    type="submit"
+    class="btn btn-primary"
+    disabled={!inputQuestion.trim() || isLoading}>Send</button
   >
-  <FileUpload />
+
   {#if error}
     <p class="error">{error}</p>
   {/if}
-  <DeleteFilesButton on:deleteFiles={handleDeleteFiles} />
-  <DeleteAssistantsButton on:deleteAssistants={handleDeleteAssistants} />
-  <NewThreadButton on:newThread={handleNewThread} />
+
+  <div class="button-group">
+    <DeleteFilesButton on:deleteFiles={handleDeleteFiles} />
+    <DeleteAssistantsButton on:deleteAssistants={handleDeleteAssistants} />
+    <NewThreadButton on:newThread={handleNewThread} />
+  </div>
+  <FileUpload />
 </form>
 
 <style>
@@ -105,44 +107,18 @@
     border: 1px solid #ccc;
     border-radius: 8px;
   }
-  .messages {
-    margin-bottom: 16px;
-    height: 300px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 8px;
-    border-radius: 8px;
-  }
-  .message {
-    padding: 8px;
-    margin: 4px;
-    border-radius: 4px;
-  }
-  .message.user {
-    background-color: #daf1da;
-    text-align: left;
-  }
-  .message.bot {
-    background-color: #e1e5ea;
-    text-align: left;
-  }
-  .chat-input,
-  button {
+
+  .chat-input {
     width: 100%;
-    padding: 10px;
     margin-bottom: 8px;
-    box-sizing: border-box;
   }
-  button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
   }
-  button:disabled {
-    background-color: #ccc;
-  }
+
   .error {
     color: red;
   }

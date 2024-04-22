@@ -34,7 +34,7 @@
 </script>
 
 <button
-  class="btn btn-primary"
+  class="btn btn-accent"
   on:click={handleNewThread}
   disabled={isCreatingThread}
 >

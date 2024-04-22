@@ -1,12 +1,12 @@
 <script>
   import { onMount } from "svelte";
-
   let uploading = false;
   let responseMessage = "";
 
   async function handleFileUpload(event) {
     event.preventDefault();
     const formData = new FormData(event.target); // event.target is the form itself
+    uploading = true; // Set uploading to true when upload starts
 
     try {
       const response = await fetch("?/uploadFileToAssistant", {
@@ -24,7 +24,7 @@
       responseMessage = `Error uploading file: ${error.message}`;
       console.error("Error uploading file:", error);
     } finally {
-      uploading = false;
+      uploading = false; // Set uploading back to false when upload is done
     }
   }
 
@@ -39,24 +39,46 @@
   method="post"
   enctype="multipart/form-data"
 >
-  <input type="file" name="file" disabled={uploading} id="file-input" />
-  <button type="submit" disabled={uploading}> Upload File </button>
+  <div class="form-control">
+    <label class="flex items-center justify-between label">
+      <span>
+        <button type="submit" class="mt-4 btn btn-info" disabled={uploading}>
+          {#if uploading}
+            Uploading...
+          {:else}
+            Upload File
+          {/if}
+        </button>
+      </span>
+      <input
+        type="file"
+        name="file"
+        disabled={uploading}
+        id="file-input"
+        class="w-full max-w-xs file-input file-input-bordered file-input-xs file-input-ghost"
+      />
+    </label>
+  </div>
+
   {#if responseMessage}
-    <p>{responseMessage}</p>
+    <p class="mt-4 text-success">{responseMessage}</p>
   {/if}
 </form>
 
 <style>
-  input[type="file"] {
-    margin-bottom: 10px;
+  .form-control {
+    margin-bottom: 1rem;
   }
-  button {
-    padding: 8px 16px;
-    font-size: 16px;
-    cursor: pointer;
+
+  .label {
+    margin-bottom: 0.5rem;
   }
-  p {
-    margin-top: 15px;
+
+  .label-text {
+    font-weight: bold;
+  }
+
+  .text-success {
     color: green;
   }
 </style>
