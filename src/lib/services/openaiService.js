@@ -7,8 +7,6 @@ const openai = new OpenAI({
   apiKey: env.VITE_OPENAI_API_KEY,
 });
 
-let assistantId;
-let threadId;
 let vectorStoreId;
 
 // Create a new assistant
@@ -145,7 +143,7 @@ export async function deleteAllAssistants() {
 }
 
 // Upload a file to OpenAI
-export async function uploadFile(file) {
+export async function uploadFile(file, assistantId) {
   try {
     // Create the file in OpenAI's system using the stream
     const uploadedFile = await openai.files.create({

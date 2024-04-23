@@ -12,6 +12,8 @@ import { error } from "@sveltejs/kit";
 /** @type {import('./$types').Actions} */
 export const actions = {
   async askGptQuestion({ request, cookies }) {
+    const assistantId = cookies.get("assistantId");
+    const threadId = cookies.get("threadId");
     const formData = await request.formData();
     const text = formData.get("text");
     if (!text) {
@@ -21,8 +23,8 @@ export const actions = {
     try {
       const { response, assistantId, threadId } = await askGptQuestion(
         text,
-        cookies.get("assistantId"),
-        cookies.get("threadId"),
+        assistantId,
+        threadId,
         cookies
       );
       console.log("Received response from GPT:", response);
@@ -70,9 +72,9 @@ export const actions = {
       throw error(500, `Error creating new thread: ${err.message}`);
     }
   },
-  async uploadFileToAssistant({ request }) {
+  async uploadFileToAssistant({ request, cookies }) {
     console.log("Processing file upload request...");
-
+    const assistantId = cookies.get("assistantId");
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -86,7 +88,7 @@ export const actions = {
     );
 
     try {
-      const fileId = await uploadFile(file); // Ensure uploadFile can handle the file object correctly
+      const fileId = await uploadFile(file, assistantId); // Ensure uploadFile can handle the file object correctly
       const confirmation_text = `File uploaded successfully, ID: ${fileId}`;
       console.log(confirmation_text);
 

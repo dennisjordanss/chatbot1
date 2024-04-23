@@ -5,20 +5,19 @@
   import ChatWindow from "./ChatWindow.svelte";
 
   export let form;
-  //   const currentForm = writable(form);
-  //   $: {
-  //     console.log("🚀 ~ form has changed to: ", $currentForm);
-  //   }
 
   let isLoading = false;
-  let error = "";
+  let uploading = false;
   let currentQuestion;
-  //   let currentResponse;
   let messages = [];
+  let assistantId;
+  let threadId;
 
   $: if (form?.response) {
     // currentResponse = form.response;
     messages = [...messages, { role: "bot", content: form.response }];
+    assistantId = form.assistantId;
+    threadId = form.threadId;
   }
 
   function handleSubmit() {
@@ -33,6 +32,7 @@
   method="post"
   action="?/askGptQuestion"
   use:enhance
+  enctype="multipart/form-data"
   class="chat-container min-h-700"
   on:submit={handleSubmit}
 >
@@ -45,16 +45,20 @@
     placeholder="Ask me anything..."
     disabled={isLoading}
   />
-  <button type="submit" class="btn btn-primary" disabled={isLoading}>
-    {#if isLoading}
-      Loading...
-    {:else}
-      Send
-    {/if}
-  </button>
-  {#if error}
-    <p class="error">{error}</p>
-  {/if}
+  <button type="submit" class="btn btn-primary" disabled={isLoading}
+    >Submit</button
+  >
+  <label class="flex items-center justify-between label">
+    <button formaction="?/uploadFileToAssistant" class="mt-4 btn btn-info">
+      Upload File
+    </button>
+    <input
+      type="file"
+      name="file"
+      id="file-input"
+      class="w-full max-w-xs file-input file-input-bordered file-input-xs file-input-ghost"
+    />
+  </label>
 </form>
 
 <style>
