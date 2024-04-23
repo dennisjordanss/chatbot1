@@ -206,7 +206,7 @@ export async function askGptQuestion(question, assistantid, threadid, cookies) {
 
   // Check if the assistantId exists in the cookie
   console.log("Checking if assistant exists");
-  if (assistantid) {
+  if (assistantid && assistantid !== "undefined") {
     assistantId = assistantid;
     console.log("Assistant ID found in cookie:", assistantId);
 
@@ -277,8 +277,8 @@ export async function askGptQuestion(question, assistantid, threadid, cookies) {
 
     return {
       response: response_text,
-      assistantId: assistantId,
-      threadId: threadId,
+      updatedAssistantId: assistantId,
+      updatedThreadId: threadId,
     };
   } else {
     console.log("Run did not complete, status:", run.status);

@@ -21,18 +21,14 @@ export const actions = {
       throw error(400, "Text is required");
     }
     try {
-      const { response, assistantId, threadId } = await askGptQuestion(
-        text,
-        assistantId,
-        threadId,
-        cookies
-      );
+      const { response, updatedAssistantId, updatedThreadId } =
+        await askGptQuestion(text, assistantId, threadId, cookies);
       console.log("Received response from GPT:", response);
-      console.log("Assistant ID:", assistantId);
-      console.log("Thread ID:", threadId);
+      console.log("Assistant ID:", updatedAssistantId);
+      console.log("Thread ID:", updatedThreadId);
 
       // Set the assistantId cookie
-      cookies.set("assistantId", assistantId, {
+      cookies.set("assistantId", updatedAssistantId, {
         path: "/",
         maxAge: 60 * 60 * 24 * 7 * 52, // 1 year
         httpOnly: true,
@@ -41,8 +37,8 @@ export const actions = {
 
       return {
         response: response,
-        assistantId: assistantId,
-        threadId: threadId,
+        assistantId: updatedAssistantId,
+        threadId: updatedThreadId,
       };
     } catch (err) {
       console.error("Error in askGptQuestion:", err);
@@ -89,10 +85,10 @@ export const actions = {
 
     try {
       const fileId = await uploadFile(file, assistantId); // Ensure uploadFile can handle the file object correctly
-      const confirmation_text = `File uploaded successfully, ID: ${fileId}`;
-      console.log(confirmation_text);
+      const confirmationText = `File uploaded successfully. File ID: ${fileId}, File Name: ${file.name}, File Size: ${file.size} bytes`;
+      console.log(confirmationText);
 
-      return confirmation_text;
+      return { response: confirmationText };
     } catch (err) {
       console.error("Failed to upload file:", err);
       throw error(500, `Failed to upload file: ${err.message}`);
