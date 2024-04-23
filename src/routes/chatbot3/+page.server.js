@@ -11,7 +11,7 @@ import { error } from "@sveltejs/kit";
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-  async askGptQuestion({ request, cookies }) {
+  async askQuestion({ request, cookies }) {
     const assistantId = cookies.get("assistantId");
     const threadId = cookies.get("threadId");
     const formData = await request.formData();
@@ -29,6 +29,14 @@ export const actions = {
 
       // Set the assistantId cookie
       cookies.set("assistantId", updatedAssistantId, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7 * 52, // 1 year
+        httpOnly: true,
+        sameSite: "strict",
+      });
+
+      // Set the assistantId cookie
+      cookies.set("threadId", updatedThreadId, {
         path: "/",
         maxAge: 60 * 60 * 24 * 7 * 52, // 1 year
         httpOnly: true,

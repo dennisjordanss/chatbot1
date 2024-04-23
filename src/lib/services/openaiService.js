@@ -1,15 +1,11 @@
 // src/lib/services/openaiService.js
 import OpenAI from "openai";
-import cookie from "cookie";
 import { env } from "$env/dynamic/private";
 
 const openai = new OpenAI({
   apiKey: env.VITE_OPENAI_API_KEY,
 });
 
-let vectorStoreId;
-
-// Create a new assistant
 async function createAssistant() {
   console.log("Creating new assistant...");
   const assistant = await openai.beta.assistants.create({
@@ -23,7 +19,6 @@ async function createAssistant() {
   return assistant.id;
 }
 
-// Add a message to a thread
 async function addMessageToThread(threadId, content) {
   console.log(`Adding message to thread: ${threadId}`);
   await openai.beta.threads.messages.create(threadId, {
@@ -32,7 +27,6 @@ async function addMessageToThread(threadId, content) {
   });
 }
 
-// Run an assistant on a thread
 async function runAssistant(threadId, assistantId) {
   console.log(`Creating run with assistant: ${assistantId}`);
   let run = await openai.beta.threads.runs.create(threadId, {
@@ -40,9 +34,8 @@ async function runAssistant(threadId, assistantId) {
   });
   console.log(`Run created with status: ${run.status}`);
 
-  // Polling the run status until it completes
   while (run.status !== "completed") {
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     run = await openai.beta.threads.runs.retrieve(threadId, run.id);
     console.log(`Updated run status: ${run.status}`);
   }
@@ -50,50 +43,41 @@ async function runAssistant(threadId, assistantId) {
   return run;
 }
 
-// Fetch all vector stores and find one by name
-async function findVectorStoreByName(storeName) {
-  console.log("Fetching existing vector stores...");
-
-  if (!openai.beta.vectorStores) {
-    console.warn("Vector stores feature is not available.");
-    return null;
-  }
-
-  const vectorStores = await openai.beta.vectorStores.list({
-    limit: 100, // Adjust limit based on your needs
-  });
-
-  const existingStore = vectorStores.data.find((v) => v.name === storeName);
-  return existingStore ? existingStore.id : null;
-}
-
-// Create a new vector store
-async function createVectorStore(name) {
-  if (!openai.beta.vectorStores) {
-    console.error(
-      "Vector stores feature is not available. Unable to create a new vector store."
-    );
-    throw new Error("Vector stores feature is not available.");
-  }
-
-  const vectorStore = await openai.beta.vectorStores.create({
-    name: name,
-    file_ids: [], // Initially empty, files can be added later
-  });
-  console.log(`Created new vector store: ${vectorStore.id}`);
-  return vectorStore.id;
-}
-
-// Ensure a vector store exists, either by finding an existing one or creating a new one
 async function ensureVectorStore(name) {
-  if (!vectorStoreId) {
-    const existingStoreId = await findVectorStoreByName(name);
-    vectorStoreId = existingStoreId || (await createVectorStore(name));
-  }
+  const vectorStoreId = await findOrCreateVectorStore(name);
   return vectorStoreId;
 }
 
-// Retrieve messages from a thread
+async function findOrCreateVectorStore(storeName) {
+  try {
+    const response = await openai.beta.vectorStores.list({ limit: 100 });
+    const store = response.data.find((v) => v.name === storeName);
+    if (store) {
+      console.log(`Using existing vector store: ${store.id}`);
+      return store.id;
+    } else {
+      return await createVectorStore(storeName);
+    }
+  } catch (error) {
+    console.error("Failed to manage vector store:", error);
+    throw error;
+  }
+}
+
+async function createVectorStore(name) {
+  try {
+    const vectorStore = await openai.beta.vectorStores.create({
+      name: name,
+      file_ids: [],
+    });
+    console.log(`Created new vector store: ${vectorStore.id}`);
+    return vectorStore.id;
+  } catch (error) {
+    console.error("Failed to create vector store:", error);
+    throw error;
+  }
+}
+
 async function retrieveMessages(threadId) {
   const messages = await openai.beta.threads.messages.list(threadId);
   console.log(
@@ -102,14 +86,53 @@ async function retrieveMessages(threadId) {
   return messages.data;
 }
 
-// Delete all files from OpenAI
+async function assistantExists(assistantId) {
+  try {
+    const response = await openai.beta.assistants.list();
+    const assistants = response.data; // this will be an array of assistant objects
+    return assistants.some((assistant) => assistant.id === assistantId);
+  } catch (error) {
+    console.error("Failed to fetch assistants:", error);
+    throw error;
+  }
+}
+
+async function checkAndCreateAssistant(assistantId) {
+  const exists = await assistantExists(assistantId);
+  if (!exists) {
+    console.log("Assistant ID not found or invalid, creating new assistant.");
+    return await createAssistant();
+  } else {
+    console.log("Valid assistant ID, no need to create a new one.");
+    return assistantId; // return the existing ID
+  }
+}
+
+async function checkAndCreateThread(threadId) {
+  if (!threadId || threadId === "undefined") {
+    console.log("threadid not found or is 'undefined'");
+    return createThread();
+  } else {
+    try {
+      await openai.beta.threads.retrieve(threadId);
+      console.log("Existing thread will be used:", threadId);
+      return threadId;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log("Thread not found. Creating a new thread.");
+        return createThread();
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export async function deleteAllFiles() {
   try {
-    // Retrieve the list of files
     const response = await openai.files.list();
     const files = response.data;
 
-    // Delete each file
     for (const file of files) {
       await openai.files.del(file.id);
       console.log(`Deleted file: ${file.id}`);
@@ -122,14 +145,11 @@ export async function deleteAllFiles() {
   }
 }
 
-// Delete all assistants
 export async function deleteAllAssistants() {
   try {
-    // Retrieve the list of assistants
     const response = await openai.beta.assistants.list();
     const assistants = response.data;
 
-    // Delete each assistant
     for (const assistant of assistants) {
       await openai.beta.assistants.del(assistant.id);
       console.log(`Deleted assistant: ${assistant.id}`);
@@ -142,10 +162,8 @@ export async function deleteAllAssistants() {
   }
 }
 
-// Upload a file to OpenAI
 export async function uploadFile(file, assistantId) {
   try {
-    // Create the file in OpenAI's system using the stream
     const uploadedFile = await openai.files.create({
       file: file,
       purpose: "assistants",
@@ -153,16 +171,13 @@ export async function uploadFile(file, assistantId) {
 
     console.log("File uploaded with ID:", uploadedFile.id);
 
-    // Ensure vector store is ready
     const vectorStoreId = await ensureVectorStore("my_vector_store");
 
     if (vectorStoreId) {
-      // Attach the uploaded file to the vector store
       await openai.beta.vectorStores.files.create(vectorStoreId, {
         file_id: uploadedFile.id,
       });
       console.log("File added to vector store");
-      // Update the existing assistant with the vector store access
       await openai.beta.assistants.update(assistantId, {
         tool_resources: {
           file_search: {
@@ -184,7 +199,6 @@ export async function uploadFile(file, assistantId) {
   }
 }
 
-// Create a new thread
 export async function createThread() {
   console.log("Creating new thread...");
   const thread = await openai.beta.threads.create();
@@ -192,69 +206,15 @@ export async function createThread() {
   return thread.id;
 }
 
-// Ask a question to the GPT assistant
-export async function askGptQuestion(question, assistantid, threadid, cookies) {
+export async function askGptQuestion(question, assistantid, threadid) {
   console.log("Received question:", question);
   console.log("assistantid:", assistantid);
   console.log("threadid:", threadid);
 
-  // Ensure vector store exists
-  const vectorStoreId = await ensureVectorStore("my_vector_store");
+  await ensureVectorStore("my_vector_store");
 
-  let assistantId;
-  let threadId;
-
-  // Check if the assistantId exists in the cookie
-  console.log("Checking if assistant exists");
-  if (assistantid && assistantid !== "undefined") {
-    assistantId = assistantid;
-    console.log("Assistant ID found in cookie:", assistantId);
-
-    try {
-      // Check if the assistant exists
-      await openai.beta.assistants.retrieve(assistantId);
-      console.log("Existing assistant will be used:", assistantId);
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        console.log("Assistant not found. Creating a new assistant.");
-        assistantId = await createAssistant();
-        console.log("New assistant created with ID:", assistantId);
-      } else {
-        throw error;
-      }
-    }
-  } else {
-    console.log("assistantId not found in cookie");
-    // If assistantId is not set, create a new assistant
-    assistantId = await createAssistant();
-    console.log("New assistant created with ID:", assistantId);
-  }
-
-  // Check if the threadid exists in the cookie
-  console.log("Checking if thread exists");
-  if (threadid) {
-    threadId = threadid;
-    console.log("Thread ID found in cookie:", threadId);
-
-    try {
-      // Check if the thread exists
-      await openai.beta.threads.retrieve(threadId);
-      console.log("Existing thread will be used:", threadId);
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        console.log("Thread not found. Creating a new thread.");
-        threadId = await createThread();
-        console.log("New thread created with ID:", threadId);
-      } else {
-        throw error;
-      }
-    }
-  } else {
-    console.log("threadid not found in cookie");
-    // If threadid is not set, create a new thread
-    threadId = await createThread();
-    console.log("New thread created with ID:", threadId);
-  }
+  const assistantId = await checkAndCreateAssistant(assistantid);
+  const threadId = await checkAndCreateThread(threadid);
 
   await addMessageToThread(threadId, question);
   console.log("Message added to thread");
@@ -266,14 +226,6 @@ export async function askGptQuestion(question, assistantid, threadid, cookies) {
     const messages = await retrieveMessages(threadId);
     const response_text = messages[0].content[0].text.value;
     console.log("GPT response:", response_text);
-
-    // Set the threadId cookie
-    cookies.set("threadId", threadId, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      httpOnly: true,
-      sameSite: "strict",
-    });
 
     return {
       response: response_text,

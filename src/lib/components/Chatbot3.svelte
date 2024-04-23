@@ -47,7 +47,7 @@
 
   <form
     method="post"
-    action="?/askGptQuestion"
+    action="?/askQuestion"
     use:enhance
     on:submit|preventDefault={handleQuestionSubmit}
   >
